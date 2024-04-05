@@ -475,7 +475,7 @@ class BaseRegDiff(ABC):
                             (self.config.training.use_DDP and self.config.training.local_rank) == 0:
                         with torch.no_grad():
                             print("validating epoch...")
-                            average_loss = self.validation_epoch(val_loader, epoch)#//
+                            average_loss = self.validation_epoch(val_loader, epoch)
                             torch.cuda.empty_cache()
                             print("validating epoch success")
 

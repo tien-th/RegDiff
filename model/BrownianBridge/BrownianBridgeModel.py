@@ -112,7 +112,10 @@ class BrownianBridgeModel(nn.Module):
 
         x_t, objective = self.q_sample(x0, y, t, noise)
         # print(f'x_t shape: {x0.shape}')    
-        objective_recon = self.denoise_fn(x_t, timesteps=t, context=context)
+        x_t_hat = x_t
+        if self.model_config.BB.CT_condition: 
+            x_t_hat = torch.cat([x_t, y], dim=1) 
+        objective_recon = self.denoise_fn(x_t_hat, timesteps=t, context=context)
 
         if self.loss_type == 'l1':
             recloss = (objective - objective_recon).abs().mean()
@@ -122,11 +125,11 @@ class BrownianBridgeModel(nn.Module):
             raise NotImplementedError()
 
         x0_recon = self.predict_x0_from_objective(x_t, y, t, objective_recon)
-        log_dict = {
-            "loss": recloss,
-            "x0_recon": x0_recon
-        }
-        return recloss, log_dict
+        # log_dict = {
+        #     "loss": recloss,
+        #     "x0_recon": x0_recon
+        # }
+        return x0_recon, recloss 
 
     def q_sample(self, x0, y, t, noise=None):
         noise = default(noise, lambda: torch.randn_like(x0))
@@ -174,9 +177,13 @@ class BrownianBridgeModel(nn.Module):
     @torch.no_grad()
     def p_sample(self, x_t, y, context, i, clip_denoised=False):
         b, *_, device = *x_t.shape, x_t.device
+        x_t_hat = x_t
+        if self.model_config.BB.CT_condition: 
+            x_t_hat = torch.cat([x_t, y], dim=1) 
+
         if self.steps[i] == 0:
             t = torch.full((x_t.shape[0],), self.steps[i], device=x_t.device, dtype=torch.long)
-            objective_recon = self.denoise_fn(x_t, timesteps=t, context=context)
+            objective_recon = self.denoise_fn(x_t_hat, timesteps=t, context=context)
             x0_recon = self.predict_x0_from_objective(x_t, y, t, objective_recon=objective_recon)
             if clip_denoised:
                 x0_recon.clamp_(-1., 1.)
@@ -185,7 +192,7 @@ class BrownianBridgeModel(nn.Module):
             t = torch.full((x_t.shape[0],), self.steps[i], device=x_t.device, dtype=torch.long)
             n_t = torch.full((x_t.shape[0],), self.steps[i+1], device=x_t.device, dtype=torch.long)
 
-            objective_recon = self.denoise_fn(x_t, timesteps=t, context=context)
+            objective_recon = self.denoise_fn(x_t_hat, timesteps=t, context=context)
             x0_recon = self.predict_x0_from_objective(x_t, y, t, objective_recon=objective_recon)
             if clip_denoised:
                 x0_recon.clamp_(-1., 1.)
