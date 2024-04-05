@@ -187,7 +187,7 @@ class BBDMRunner(BaseRegDiff):
         
         # print((Trans==0).sum())
         # total_loss =  smooth_loss + 2 * loss 
-        total_loss = loss + 0.8 * regloss + 0.4 * smooth_loss
+        total_loss = loss + 0.5 * regloss + 0.25 * smooth_loss
         
         if write:
             self.writer.add_scalar(f'regloss/{stage}', regloss, step)

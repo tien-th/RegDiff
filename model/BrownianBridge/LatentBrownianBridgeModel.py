@@ -59,8 +59,11 @@ class LatentBrownianBridgeModel(BrownianBridgeModel):
             x_latent = self.encode(x, cond=False)
             x_cond_latent = self.encode(x_cond, cond=True)
         context = self.get_cond_stage_context(x_cond)
-        return super().forward(x_latent.detach(), x_cond_latent.detach(), context)
-
+        x0_laten, loss = super().forward(x_latent.detach(), x_cond_latent.detach(), context)
+        x0_recon = self.decode(x0_laten)
+        return x0_recon, loss
+        
+        
     def get_cond_stage_context(self, x_cond):
         if self.cond_stage_model is not None:
             context = self.cond_stage_model(x_cond)

@@ -111,8 +111,11 @@ class BrownianBridgeModel(nn.Module):
         noise = default(noise, lambda: torch.randn_like(x0))
 
         x_t, objective = self.q_sample(x0, y, t, noise)
-        # print(f'x_t shape: {x0.shape}')    
-        objective_recon = self.denoise_fn(x_t, timesteps=t, context=context)
+        # print(f'x_t shape: {x0.shape}') 
+        x_t_hat = x_t
+        if self.model_config.BB.CT_condition: 
+            x_t_hat = torch.cat([x_t, y], dim=1) 
+        objective_recon = self.denoise_fn(x_t_hat, timesteps=t, context=context)
 
         if self.loss_type == 'l1':
             recloss = (objective - objective_recon).abs().mean()
@@ -121,12 +124,9 @@ class BrownianBridgeModel(nn.Module):
         else:
             raise NotImplementedError()
 
-        x0_recon = self.predict_x0_from_objective(x_t, y, t, objective_recon)
-        log_dict = {
-            "loss": recloss,
-            "x0_recon": x0_recon
-        }
-        return recloss, log_dict
+        # x0_recon = self.predict_x0_from_objective(x_t, y, t, objective_recon)
+        
+        return objective_recon, recloss
 
     def q_sample(self, x0, y, t, noise=None):
         noise = default(noise, lambda: torch.randn_like(x0))
@@ -140,6 +140,8 @@ class BrownianBridgeModel(nn.Module):
             objective = noise
         elif self.objective == 'ysubx':
             objective = y - x0
+        elif self.objective == 'x0': 
+            objective = x0
         else:
             raise NotImplementedError()
 
@@ -158,6 +160,8 @@ class BrownianBridgeModel(nn.Module):
             x0_recon = (x_t - m_t * y - sigma_t * objective_recon) / (1. - m_t)
         elif self.objective == 'ysubx':
             x0_recon = y - objective_recon
+        elif self.objective == 'x0': 
+             x0_recon = objective_recon
         else:
             raise NotImplementedError
         return x0_recon
@@ -174,9 +178,15 @@ class BrownianBridgeModel(nn.Module):
     @torch.no_grad()
     def p_sample(self, x_t, y, context, i, clip_denoised=False):
         b, *_, device = *x_t.shape, x_t.device
+        x_t_hat = x_t
+        if self.model_config.BB.CT_condition: 
+            x_t_hat = torch.cat([x_t, y], dim=1)
+     
+        
         if self.steps[i] == 0:
             t = torch.full((x_t.shape[0],), self.steps[i], device=x_t.device, dtype=torch.long)
-            objective_recon = self.denoise_fn(x_t, timesteps=t, context=context)
+            
+            objective_recon = self.denoise_fn(x_t_hat, timesteps=t, context=context)
             x0_recon = self.predict_x0_from_objective(x_t, y, t, objective_recon=objective_recon)
             if clip_denoised:
                 x0_recon.clamp_(-1., 1.)
@@ -185,7 +195,7 @@ class BrownianBridgeModel(nn.Module):
             t = torch.full((x_t.shape[0],), self.steps[i], device=x_t.device, dtype=torch.long)
             n_t = torch.full((x_t.shape[0],), self.steps[i+1], device=x_t.device, dtype=torch.long)
 
-            objective_recon = self.denoise_fn(x_t, timesteps=t, context=context)
+            objective_recon = self.denoise_fn(x_t_hat, timesteps=t, context=context)
             x0_recon = self.predict_x0_from_objective(x_t, y, t, objective_recon=objective_recon)
             if clip_denoised:
                 x0_recon.clamp_(-1., 1.)

@@ -1,8 +1,8 @@
 # train
 # python3 main.py --config configs/LBBDMxSAGxVq13.yaml --train --sample_at_start --save_top --gpu_ids 3 --resume_model results/LBBDMxSAGxVq13/LBBDM-f4/checkpoint/last_model.pth --resume_optim results/LBBDMxSAGxVq13/LBBDM-f4/checkpoint/last_optim_sche.pth
-#test
+#train 
 
-python3 main.py --config configs/LBBDMxVq13_15k.yaml --sample_to_eval --gpu_ids 2 --resume_model results/LBBDMxVq13_15k/LBBDM-f4/checkpoint/top_model_epoch_112.pth --resume_optim results/LBBDMxVq13_15k/LBBDM-f4/checkpoint/top_optim_sche_epoch_112.pth
+python3 main.py --config configs/31_03_LBBDM_reg_noCT.yaml --train --sample_at_start --save_top --gpu_ids 2 --resume_model ./results/BBDM_reg_no_CT/LBBDM-f4/checkpoint/top_model_epoch_66.pth --resume_optim ./results/BBDM_reg_no_CT/LBBDM-f4/checkpoint/top_optim_sche_epoch_66.pth
 
 
 # python3 main.py --config configs/LBBDMxVq13_10k.yaml --train --sample_at_start --save_top --gpu_ids 0
